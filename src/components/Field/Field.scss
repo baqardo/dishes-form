@@ -1,0 +1,51 @@
+.field {
+  &__input {
+    display: block;
+    margin: 0 auto;
+    padding: 0 2rem;
+
+    height: 3rem;
+    width: 80%;
+
+    border-radius: 1.5rem;
+    border: none;
+    background-color: rgb(240, 240, 240);
+    color: rgb(128, 128, 128);
+
+    transition: all 0.3s;
+
+    &:hover,
+    &:focus {
+      outline: none;
+      background-color: #faf0e2;
+    }
+
+    &--select {
+      -moz-appearance: none;
+      -webkit-appearance: none;
+      appearance: none;
+
+      margin-bottom: 2rem;
+
+      cursor: pointer;
+    }
+
+    &:not(&:last-of-type) {
+      margin-bottom: 2rem;
+    }
+  }
+
+  &__option {
+    background-color: rgb(240, 240, 240);
+    color: rgb(128, 128, 128);
+  }
+}
+
+::placeholder {
+  color: rgb(128, 128, 128);
+  opacity: 1;
+}
+
+::-ms-input-placeholder {
+  color: rgb(128, 128, 128);
+}

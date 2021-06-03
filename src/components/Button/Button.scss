@@ -1,0 +1,20 @@
+.button {
+  margin: auto;
+  padding: 0 2rem;
+
+  height: 3rem;
+  width: 40%;
+
+  border-radius: 1.5rem;
+  border: none;
+  background-color: #f8aa00;
+
+  font-size: 1.25rem;
+  color: #fff;
+
+  transition: all 0.3s;
+
+  @media screen and (max-width: 640px) {
+    font-size: 1rem;
+  }
+}

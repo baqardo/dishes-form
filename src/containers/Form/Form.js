@@ -4,6 +4,9 @@ import Field from "../../components/Field/Field";
 
 import "./Form.scss";
 
+import logoImage from "../../assets/svg/logo.svg";
+import waveImage from "../../assets/svg/wave.svg";
+
 class Form extends Component {
   state = {
     isValid: false,
@@ -250,10 +253,17 @@ class Form extends Component {
     });
 
     return (
-      <form className="form" onSubmit={this.submitHandler}>
-        {elementsToRender}
-        <Button>Submit</Button>
-      </form>
+      <div className="form-wrapper">
+        <form className="form" onSubmit={this.submitHandler}>
+          <div className="form__decorations">
+            <img className="form__wave" src={waveImage} alt="logo" />
+            <img className="form__logo" src={logoImage} alt="" />
+          </div>
+          <h1 className="form__title">Dishes</h1>
+          {elementsToRender}
+          <Button>Submit</Button>
+        </form>
+      </div>
     );
   }
 }
