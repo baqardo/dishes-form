@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import Button from "../../components/Button/Button";
 import Field from "../../components/Field/Field";
 
 import "./Form.scss";
@@ -9,7 +10,6 @@ class Form extends Component {
     globalCategory: "pizza",
     dishForm: {
       name: {
-        elementCategory: "default",
         elementType: "input",
         elementConfig: {
           type: "text",
@@ -17,14 +17,14 @@ class Form extends Component {
         },
         value: "",
         validation: {
-          required: true,
+          isRequired: true,
           minLength: 2,
         },
         isValid: false,
         isTouched: false,
+        category: "default",
       },
       preparation_time: {
-        elementCategory: "default",
         elementType: "input",
         elementConfig: {
           type: "time",
@@ -33,13 +33,13 @@ class Form extends Component {
         },
         value: "00:00:00",
         validation: {
-          required: true,
+          isRequired: true,
         },
         isValid: false,
         isTouched: false,
+        category: "default",
       },
       type: {
-        elementCategory: "default",
         elementType: "select",
         elementConfig: {
           options: [
@@ -50,13 +50,13 @@ class Form extends Component {
         },
         value: "pizza",
         validation: {
-          required: true,
+          isRequired: true,
         },
         isValid: true,
         isTouched: false,
+        category: "default",
       },
       no_of_slices: {
-        elementCategory: "pizza",
         elementType: "input",
         elementConfig: {
           type: "number",
@@ -65,14 +65,15 @@ class Form extends Component {
         },
         value: "",
         validation: {
-          required: true,
+          isRequired: true,
+          isNumeric: true,
           min: 1,
         },
         isValid: false,
         isTouched: false,
+        category: "pizza",
       },
       diameter: {
-        elementCategory: "pizza",
         elementType: "input",
         elementConfig: {
           type: "number",
@@ -82,14 +83,15 @@ class Form extends Component {
         },
         value: "",
         validation: {
-          required: true,
+          isRequired: true,
+          isNumeric: true,
           min: 0.01,
         },
         isValid: false,
         isTouched: false,
+        category: "pizza",
       },
       spiciness_scale: {
-        elementCategory: "soup",
         elementType: "input",
         elementConfig: {
           type: "number",
@@ -99,15 +101,16 @@ class Form extends Component {
         },
         value: "",
         validation: {
-          required: true,
+          isRequired: true,
+          isNumeric: true,
           min: 1,
           max: 10,
         },
         isValid: false,
         isTouched: false,
+        category: "soup",
       },
       slices_of_bread: {
-        elementCategory: "sandwich",
         elementType: "input",
         elementConfig: {
           type: "number",
@@ -116,46 +119,75 @@ class Form extends Component {
         },
         value: "",
         validation: {
-          required: true,
+          isRequired: true,
+          isNumeric: true,
           min: 1,
         },
         isValid: false,
         isTouched: false,
+        category: "sandwich",
       },
     },
   };
 
-  inputChangeHandler = (event, fieldID) => {
+  fieldChangeHandler = (event, editedFieldID) => {
     const updatedDishForm = { ...this.state.dishForm };
-    const updatedFormElement = { ...updatedDishForm[fieldID] };
+    const updatedFormElement = { ...updatedDishForm[editedFieldID] };
 
-    updatedFormElement.value = event.target.value;
-    updatedFormElement.isValid = this.checkValidity(updatedFormElement.value, updatedFormElement.validation);
-    updatedFormElement.touched = true;
-    updatedDishForm[fieldID] = updatedFormElement;
+    updatedFormElement.isValid = this.checkValidity(event.target.value, updatedFormElement.validation);
 
-    this.setState({ dishForm: updatedDishForm });
-    console.log(updatedFormElement.isValid);
+    if (updatedFormElement.elementConfig.type === "number") {
+      updatedFormElement.value = Number(event.target.value);
+    } else {
+      updatedFormElement.value = event.target.value;
+    }
+
+    updatedFormElement.isTouched = true;
+    updatedDishForm[editedFieldID] = updatedFormElement;
+
+    let updatedGlobalCategory = this.state.globalCategory;
+    if (editedFieldID === "type") updatedGlobalCategory = updatedFormElement.value;
+
+    let isFormValid = true;
+    for (let fieldID in updatedDishForm) {
+      const fieldCategory = this.state.dishForm[fieldID].category;
+
+      if (!this.isProperCategory(fieldCategory, updatedGlobalCategory)) continue;
+      isFormValid = updatedDishForm[fieldID].isValid && isFormValid;
+    }
+    this.setState({ dishForm: updatedDishForm, globalCategory: updatedGlobalCategory, isValid: isFormValid });
   };
 
-  selectChangeHandler = (event, fieldID) => {
-    const updatedDishForm = { ...this.state.dishForm };
-    const updatedFormElement = { ...updatedDishForm[fieldID] };
+  submitHandler = event => {
+    event.preventDefault();
 
-    updatedFormElement.value = event.target.value;
-    updatedFormElement.isValid = this.checkValidity(updatedFormElement.value, updatedFormElement.validation);
-    updatedFormElement.touched = true;
-    updatedDishForm[fieldID] = updatedFormElement;
+    const dataToSend = {};
 
-    const updatedGlobalCategory = updatedFormElement.value;
+    for (const fieldID in this.state.dishForm) {
+      const field = this.state.dishForm[fieldID];
+      const fieldCategory = field.category;
 
-    this.setState({ dishForm: updatedDishForm, globalCategory: updatedGlobalCategory });
+      if (!this.isProperCategory(fieldCategory)) continue;
+
+      dataToSend[fieldID] = field.value;
+    }
+
+    fetch("https://frosty-wood-6558.getsandbox.com:443/dishes", {
+      body: JSON.stringify(dataToSend),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    })
+      .then(answer => answer.json())
+      .then(data => console.log(data))
+      .catch(error => console.log(error));
   };
 
   checkValidity(value, rules) {
     let isValid = true;
 
-    if (rules.required) {
+    if (rules.isRequired) {
       isValid = value.trim() !== "" && isValid;
     }
 
@@ -183,18 +215,25 @@ class Form extends Component {
     return isValid;
   }
 
+  isProperCategory(category, globalCategory = this.state.globalCategory) {
+    if (category === "default" || category === globalCategory) return true;
+
+    return false;
+  }
+
   render() {
     const formElements = [];
 
-    for (const key in this.state.dishForm) {
-      const elementCategory = this.state.dishForm[key].elementCategory;
-      const globalCategory = this.state.globalCategory;
+    for (const fieldID in this.state.dishForm) {
+      const field = this.state.dishForm[fieldID];
+      const fieldCategory = field.category;
 
-      if (elementCategory === "default" || elementCategory === globalCategory)
-        formElements.push({
-          id: key,
-          config: this.state.dishForm[key],
-        });
+      if (!this.isProperCategory(fieldCategory)) continue;
+
+      formElements.push({
+        id: fieldID,
+        config: field,
+      });
     }
 
     const elementsToRender = formElements.map(formElement => {
@@ -205,13 +244,17 @@ class Form extends Component {
           elementType={elementType}
           elementConfig={elementConfig}
           value={value}
-          inputChanged={event => this.inputChangeHandler(event, formElement.id)}
-          selectChanged={event => this.selectChangeHandler(event, formElement.id)}
+          changed={event => this.fieldChangeHandler(event, formElement.id)}
         />
       );
     });
 
-    return <form className="form">{elementsToRender}</form>;
+    return (
+      <form className="form" onSubmit={this.submitHandler}>
+        {elementsToRender}
+        <Button>Submit</Button>
+      </form>
+    );
   }
 }
 

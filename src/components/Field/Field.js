@@ -2,33 +2,25 @@ import React from "react";
 
 import "./Field.scss";
 
-const Input = props => {
-  let inputElement = null;
+const Field = props => {
+  const fieldTemplates = {
+    input: () => (
+      <input className="field__input" {...props.elementConfig} value={props.value} onChange={props.changed} />
+    ),
+    select: () => (
+      <select className="field__select" value={props.value} onChange={props.changed}>
+        {props.elementConfig.options.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.displayValue}
+          </option>
+        ))}
+      </select>
+    ),
+  };
 
-  switch (props.elementType) {
-    case "input":
-      inputElement = (
-        <input className="field__input" {...props.elementConfig} value={props.value} onChange={props.inputChanged} />
-      );
-      break;
+  let fieldElement = fieldTemplates[props.elementType]();
 
-    case "select":
-      inputElement = (
-        <select className="field__select" value={props.value} onChange={props.selectChanged}>
-          {props.elementConfig.options.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.displayValue}
-            </option>
-          ))}
-        </select>
-      );
-      break;
-
-    default:
-      return inputElement;
-  }
-
-  return inputElement;
+  return fieldElement;
 };
 
-export default Input;
+export default Field;
