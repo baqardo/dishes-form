@@ -29,11 +29,9 @@ const Field = props => {
     ),
   };
 
-  console.log(props);
-
   let fieldElement = (
     <>
-      <label className="field__label" for={props.id}>
+      <label className="field__label" htmlFor={props.id}>
         {props.elementConfig.placeholder}
       </label>
       {fieldTemplates[props.elementType]()}

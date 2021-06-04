@@ -6,9 +6,11 @@ import "./Form.scss";
 
 import logoImage from "../../assets/svg/logo.svg";
 import waveImage from "../../assets/svg/wave.svg";
+import Spinner from "../../components/Spinner/Spinner";
 
 class Form extends Component {
   state = {
+    isLoading: false,
     isValid: false,
     globalCategory: "pizza",
     dishForm: {
@@ -17,7 +19,7 @@ class Form extends Component {
         elementConfig: {
           type: "text",
           placeholder: "Dish Name",
-          minlength: "2",
+          minLength: "2",
         },
         value: "",
         validation: {
@@ -133,6 +135,7 @@ class Form extends Component {
         category: "sandwich",
       },
     },
+    error: null,
   };
 
   fieldChangeHandler = (event, editedFieldID) => {
@@ -170,7 +173,7 @@ class Form extends Component {
     event.preventDefault();
     if (!this.state.isValid) return;
 
-    const dataToSend = {};
+    let dataToSend = {};
 
     for (const fieldID in this.state.dishForm) {
       const field = this.state.dishForm[fieldID];
@@ -181,7 +184,7 @@ class Form extends Component {
       dataToSend[fieldID] = field.value;
     }
 
-    console.log(dataToSend);
+    this.setState({ isLoading: true });
 
     fetch("https://frosty-wood-6558.getsandbox.com:443/dishes", {
       body: JSON.stringify(dataToSend),
@@ -190,9 +193,31 @@ class Form extends Component {
       },
       method: "POST",
     })
-      .then(answer => answer.json())
-      .then(data => console.log(data))
-      .catch(() => console.log("error"));
+      .then(response => {
+        this.setState({ isLoading: false });
+        if (response.ok) {
+          const jsonPromise = response.json();
+          jsonPromise.then(data => {
+            console.log("Success", data);
+          });
+        } else {
+          const jsonPromise = response.json();
+          jsonPromise.then(data => {
+            const error = {};
+            for (const key in data) {
+              error.name = key;
+              error.message = data[key];
+            }
+
+            this.setState({ error: error });
+          });
+        }
+      })
+      .catch(error => {
+        this.setState({ isLoading: false, error: { name: "server", message: "Unknown Error" } });
+
+        console.log(error);
+      });
   };
 
   checkValidity(value, rules) {
@@ -281,7 +306,12 @@ class Form extends Component {
           </div>
           <h1 className="form__title">Dishes</h1>
           {elementsToRender}
-          <Button disabled={!this.state.isValid}>Submit</Button>
+          {this.state.error && (
+            <p className="form__error">
+              {this.state.error.name}: {this.state.error.message}
+            </p>
+          )}
+          {this.state.isLoading ? <Spinner /> : <Button disabled={!this.state.isValid}>Submit</Button>}
         </form>
       </div>
     );
