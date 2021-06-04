@@ -1,18 +1,19 @@
 import React, { Component } from "react";
 import Button from "../../components/Button/Button";
 import Field from "../../components/Field/Field";
+import Spinner from "../../components/Spinner/Spinner";
 
 import "./Form.scss";
 
 import logoImage from "../../assets/svg/logo.svg";
 import waveImage from "../../assets/svg/wave.svg";
-import Spinner from "../../components/Spinner/Spinner";
 
 class Form extends Component {
   state = {
     isLoading: false,
     isValid: false,
     globalCategory: "pizza",
+    error: null,
     dishForm: {
       name: {
         elementType: "input",
@@ -135,96 +136,46 @@ class Form extends Component {
         category: "sandwich",
       },
     },
-    error: null,
   };
 
-  fieldChangeHandler = (event, editedFieldID) => {
+  fieldChangeHandler = (event, formElementID) => {
     const updatedDishForm = { ...this.state.dishForm };
-    const updatedFormElement = { ...updatedDishForm[editedFieldID] };
+    const updatedFormElement = { ...updatedDishForm[formElementID] };
 
-    updatedFormElement.isValid = this.checkValidity(event.target.value, updatedFormElement.validation);
+    const fieldType = updatedFormElement.elementConfig.type;
+    const fieldValue = this.formatFieldValue(event.target.value, fieldType);
 
-    if (updatedFormElement.elementConfig.type === "number") {
-      updatedFormElement.value = Number(event.target.value);
-    } else {
-      updatedFormElement.value = event.target.value;
-    }
-
-    if (updatedFormElement.elementConfig.type === "time")
-      updatedFormElement.value = this.formatTimeInput(updatedFormElement.value);
-
+    updatedFormElement.isValid = this.isFieldValid(fieldValue, updatedFormElement.validation);
+    updatedFormElement.value = fieldValue;
     updatedFormElement.isTouched = true;
-    updatedDishForm[editedFieldID] = updatedFormElement;
+
+    updatedDishForm[formElementID] = updatedFormElement;
 
     let updatedGlobalCategory = this.state.globalCategory;
-    if (editedFieldID === "type") updatedGlobalCategory = updatedFormElement.value;
+    if (formElementID === "type") updatedGlobalCategory = updatedFormElement.value;
 
-    let isFormValid = true;
-    for (let fieldID in updatedDishForm) {
-      const fieldCategory = this.state.dishForm[fieldID].category;
-
-      if (!this.isProperCategory(fieldCategory, updatedGlobalCategory)) continue;
-      isFormValid = updatedDishForm[fieldID].isValid && isFormValid;
-    }
-    this.setState({ dishForm: updatedDishForm, globalCategory: updatedGlobalCategory, isValid: isFormValid });
+    this.setState({
+      dishForm: updatedDishForm,
+      globalCategory: updatedGlobalCategory,
+      isValid: this.isFormValid(updatedDishForm, updatedGlobalCategory),
+    });
   };
 
   submitHandler = event => {
     event.preventDefault();
     if (!this.state.isValid) return;
 
-    let dataToSend = {};
-
-    for (const fieldID in this.state.dishForm) {
-      const field = this.state.dishForm[fieldID];
-      const fieldCategory = field.category;
-
-      if (!this.isProperCategory(fieldCategory)) continue;
-
-      dataToSend[fieldID] = field.value;
-    }
-
     this.setState({ isLoading: true });
 
-    fetch("https://frosty-wood-6558.getsandbox.com:443/dishes", {
-      body: JSON.stringify(dataToSend),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    })
-      .then(response => {
-        this.setState({ isLoading: false });
-        if (response.ok) {
-          const jsonPromise = response.json();
-          jsonPromise.then(data => {
-            console.log("Success", data);
-          });
-        } else {
-          const jsonPromise = response.json();
-          jsonPromise.then(data => {
-            const error = {};
-            for (const key in data) {
-              error.name = key;
-              error.message = data[key];
-            }
-
-            this.setState({ error: error });
-          });
-        }
-      })
-      .catch(error => {
-        this.setState({ isLoading: false, error: { name: "server", message: "Unknown Error" } });
-
-        console.log(error);
-      });
+    let dataToSend = this.giveDataToSend();
+    this.sendDishData(dataToSend);
   };
 
-  checkValidity(value, rules) {
+  isFieldValid(value, rules) {
     let isValid = true;
 
     if (rules.isRequired) {
-      isValid = value.trim() !== "" && isValid;
+      isValid = value.toString().trim() !== "" && isValid;
     }
 
     if (rules.minLength) {
@@ -256,6 +207,19 @@ class Form extends Component {
     return isValid;
   }
 
+  isFormValid(form, globalCategory) {
+    let isFormValid = true;
+    for (let fieldID in form) {
+      const fieldCategory = this.state.dishForm[fieldID].category;
+
+      if (!this.isProperCategory(fieldCategory, globalCategory)) continue;
+
+      isFormValid = form[fieldID].isValid && isFormValid;
+    }
+
+    return isFormValid;
+  }
+
   isProperCategory(category, globalCategory = this.state.globalCategory) {
     if (category === "default" || category === globalCategory) return true;
 
@@ -265,6 +229,84 @@ class Form extends Component {
   formatTimeInput(time) {
     if (time.length < 8) return time + ":00";
     else return time;
+  }
+
+  convertToNumber(input) {
+    return Number(input);
+  }
+
+  formatFieldValue(value, type) {
+    let formattedValue = value;
+
+    if (type === "number") formattedValue = this.convertToNumber(value);
+    if (type === "time") formattedValue = this.formatTimeInput(value);
+
+    return formattedValue;
+  }
+
+  giveDataToSend() {
+    const dataToSend = {};
+
+    for (const fieldID in this.state.dishForm) {
+      const field = this.state.dishForm[fieldID];
+      const fieldCategory = field.category;
+
+      if (!this.isProperCategory(fieldCategory)) continue;
+
+      dataToSend[fieldID] = field.value;
+    }
+
+    return dataToSend;
+  }
+
+  async sendDishData(data) {
+    try {
+      const response = await fetch("https://frosty-wood-6558.getsandbox.com:443/dishes", {
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      let error = null;
+
+      if (response.ok) {
+        const responseData = await response.json();
+        this.resetFieldsValue();
+        console.log("Success", responseData);
+      } else {
+        const responseData = await response.json();
+
+        for (const key in responseData) {
+          const name = this.state.dishForm[key].elementConfig.placeholder;
+          error = { name: name, message: responseData[key] };
+        }
+      }
+
+      this.setState({ isLoading: false, error: error });
+    } catch (fetchError) {
+      console.log(fetchError);
+
+      this.setState({ isLoading: false, error: { name: "server", message: "Unknown Error" } });
+    }
+  }
+
+  resetFieldsValue() {
+    const form = { ...this.state.dishForm };
+
+    for (const fieldID in this.state.dishForm) {
+      const field = { ...form[fieldID] };
+
+      if (fieldID === "type") continue;
+
+      if (fieldID === "preparation_time") field.value = "00:00:00";
+      else field.value = "";
+
+      form[fieldID] = field;
+    }
+
+    this.setState({ dishForm: form });
   }
 
   render() {
