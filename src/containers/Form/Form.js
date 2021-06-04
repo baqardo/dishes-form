@@ -17,6 +17,7 @@ class Form extends Component {
         elementConfig: {
           type: "text",
           placeholder: "Dish Name",
+          minlength: "2",
         },
         value: "",
         validation: {
@@ -31,7 +32,7 @@ class Form extends Component {
         elementType: "input",
         elementConfig: {
           type: "time",
-          placeholder: "Dish Name",
+          placeholder: "Preparation Time",
           step: "1",
         },
         value: "00:00:00",
@@ -50,6 +51,7 @@ class Form extends Component {
             { value: "soup", displayValue: "Soup" },
             { value: "sandwich", displayValue: "Sandwich" },
           ],
+          placeholder: "Dish Type",
         },
         value: "pizza",
         validation: {
@@ -87,7 +89,7 @@ class Form extends Component {
         value: "",
         validation: {
           isRequired: true,
-          isNumeric: true,
+          isFloat: true,
           min: 0.01,
         },
         isValid: false,
@@ -145,6 +147,9 @@ class Form extends Component {
       updatedFormElement.value = event.target.value;
     }
 
+    if (updatedFormElement.elementConfig.type === "time")
+      updatedFormElement.value = this.formatTimeInput(updatedFormElement.value);
+
     updatedFormElement.isTouched = true;
     updatedDishForm[editedFieldID] = updatedFormElement;
 
@@ -163,6 +168,7 @@ class Form extends Component {
 
   submitHandler = event => {
     event.preventDefault();
+    if (!this.state.isValid) return;
 
     const dataToSend = {};
 
@@ -175,6 +181,8 @@ class Form extends Component {
       dataToSend[fieldID] = field.value;
     }
 
+    console.log(dataToSend);
+
     fetch("https://frosty-wood-6558.getsandbox.com:443/dishes", {
       body: JSON.stringify(dataToSend),
       headers: {
@@ -184,7 +192,7 @@ class Form extends Component {
     })
       .then(answer => answer.json())
       .then(data => console.log(data))
-      .catch(error => console.log(error));
+      .catch(() => console.log("error"));
   };
 
   checkValidity(value, rules) {
@@ -215,6 +223,11 @@ class Form extends Component {
       isValid = pattern.test(value) && isValid;
     }
 
+    if (rules.isFloat) {
+      const testedValue = parseFloat(value);
+      isValid = !isNaN(testedValue) && isValid;
+    }
+
     return isValid;
   }
 
@@ -222,6 +235,11 @@ class Form extends Component {
     if (category === "default" || category === globalCategory) return true;
 
     return false;
+  }
+
+  formatTimeInput(time) {
+    if (time.length < 8) return time + ":00";
+    else return time;
   }
 
   render() {
@@ -244,10 +262,12 @@ class Form extends Component {
       return (
         <Field
           key={formElement.id}
+          id={formElement.id}
           elementType={elementType}
           elementConfig={elementConfig}
           value={value}
           changed={event => this.fieldChangeHandler(event, formElement.id)}
+          invalid={!formElement.config.isValid && formElement.config.isTouched}
         />
       );
     });
@@ -261,7 +281,7 @@ class Form extends Component {
           </div>
           <h1 className="form__title">Dishes</h1>
           {elementsToRender}
-          <Button>Submit</Button>
+          <Button disabled={!this.state.isValid}>Submit</Button>
         </form>
       </div>
     );

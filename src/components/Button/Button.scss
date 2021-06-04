@@ -17,4 +17,15 @@
   @media screen and (max-width: 640px) {
     font-size: 1rem;
   }
+
+  &:hover,
+  &:focus {
+    outline: none;
+    cursor: pointer;
+    background-color: #f36a3e;
+  }
+
+  &[disabled] {
+    background-color: rgb(189, 189, 189);
+  }
 }

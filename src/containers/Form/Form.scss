@@ -3,7 +3,7 @@
   flex-direction: column;
 
   width: 40%;
-  min-height: 850px;
+  min-height: 875px;
 
   margin: 4rem auto;
 
@@ -11,7 +11,7 @@
   box-shadow: 0 4px 48px rgba(0, 0, 0, 0.1);
 
   @media screen and (min-width: 1280px) {
-    height: 900px;
+    height: 925px;
   }
   @media screen and (max-width: 960px) {
     width: 60%;
@@ -43,7 +43,6 @@
 
   &__title {
     margin-top: 4rem;
-    margin-bottom: 2rem;
 
     font-family: Arial, Helvetica, sans-serif;
     font-size: 3.5rem;
