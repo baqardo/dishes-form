@@ -3,6 +3,8 @@ import Button from "../../components/Button/Button";
 import Field from "../../components/Field/Field";
 import Spinner from "../../components/Spinner/Spinner";
 
+import { checkFieldValidity, formatTime, isProperCategory, formatFieldValue } from "../../shared/utility";
+
 import "./Form.scss";
 
 import logoImage from "../../assets/svg/logo.svg";
@@ -143,9 +145,9 @@ class Form extends Component {
     const updatedFormElement = { ...updatedDishForm[formElementID] };
 
     const fieldType = updatedFormElement.elementConfig.type;
-    const fieldValue = this.formatFieldValue(event.target.value, fieldType);
+    const fieldValue = formatFieldValue(event.target.value, fieldType);
 
-    updatedFormElement.isValid = this.isFieldValid(fieldValue, updatedFormElement.validation);
+    updatedFormElement.isValid = checkFieldValidity(fieldValue, updatedFormElement.validation);
     updatedFormElement.value = fieldValue;
     updatedFormElement.isTouched = true;
 
@@ -171,77 +173,17 @@ class Form extends Component {
     this.sendDishData(dataToSend);
   };
 
-  isFieldValid(value, rules) {
-    let isValid = true;
-
-    if (rules.isRequired) {
-      isValid = value.toString().trim() !== "" && isValid;
-    }
-
-    if (rules.minLength) {
-      isValid = value.length >= rules.minLength && isValid;
-    }
-
-    if (rules.maxLength) {
-      isValid = value.length <= rules.maxLength && isValid;
-    }
-
-    if (rules.min) {
-      isValid = value >= rules.min && isValid;
-    }
-
-    if (rules.max) {
-      isValid = value <= rules.max && isValid;
-    }
-
-    if (rules.isNumeric) {
-      const pattern = /^\d+$/;
-      isValid = pattern.test(value) && isValid;
-    }
-
-    if (rules.isFloat) {
-      const testedValue = parseFloat(value);
-      isValid = !isNaN(testedValue) && isValid;
-    }
-
-    return isValid;
-  }
-
   isFormValid(form, globalCategory) {
     let isFormValid = true;
     for (let fieldID in form) {
       const fieldCategory = this.state.dishForm[fieldID].category;
 
-      if (!this.isProperCategory(fieldCategory, globalCategory)) continue;
+      if (!isProperCategory(fieldCategory, globalCategory)) continue;
 
       isFormValid = form[fieldID].isValid && isFormValid;
     }
 
     return isFormValid;
-  }
-
-  isProperCategory(category, globalCategory = this.state.globalCategory) {
-    if (category === "default" || category === globalCategory) return true;
-
-    return false;
-  }
-
-  formatTimeInput(time) {
-    if (time.length < 8) return time + ":00";
-    else return time;
-  }
-
-  convertToNumber(input) {
-    return Number(input);
-  }
-
-  formatFieldValue(value, type) {
-    let formattedValue = value;
-
-    if (type === "number") formattedValue = this.convertToNumber(value);
-    if (type === "time") formattedValue = this.formatTimeInput(value);
-
-    return formattedValue;
   }
 
   giveDataToSend() {
@@ -251,9 +193,10 @@ class Form extends Component {
       const field = this.state.dishForm[fieldID];
       const fieldCategory = field.category;
 
-      if (!this.isProperCategory(fieldCategory)) continue;
+      if (!isProperCategory(fieldCategory, this.state.globalCategory)) continue;
 
-      dataToSend[fieldID] = field.value;
+      if (fieldID === "preparation_time") dataToSend[fieldID] = formatTime(field.value);
+      else dataToSend[fieldID] = field.value;
     }
 
     return dataToSend;
@@ -288,7 +231,7 @@ class Form extends Component {
     } catch (fetchError) {
       console.log(fetchError);
 
-      this.setState({ isLoading: false, error: { name: "server", message: "Unknown Error" } });
+      this.setState({ isLoading: false, error: { name: "Server", message: "Unknown Error" } });
     }
   }
 
@@ -316,7 +259,7 @@ class Form extends Component {
       const field = this.state.dishForm[fieldID];
       const fieldCategory = field.category;
 
-      if (!this.isProperCategory(fieldCategory)) continue;
+      if (!isProperCategory(fieldCategory, this.state.globalCategory)) continue;
 
       formElements.push({
         id: fieldID,
